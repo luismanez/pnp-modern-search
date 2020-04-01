@@ -30,11 +30,7 @@ export interface ISearchResultsWebPartProps {
     rendererId: string;
     customTemplateFieldValues: ICustomTemplateFieldValue[];
     enableLocalization: boolean;
-    useRefiners: boolean;
-    useSearchVerticals: boolean;
-    refinerDataSourceReference: string;
-    searchVerticalDataSourceReference: string;
-    paginationDataSourceReference: string;
+
     synonymList: ISynonymFieldConfiguration[];
     searchQueryLanguage: number;
     templateParameters: { [key:string]: any };

@@ -3,13 +3,10 @@ declare interface ISearchResultsWebPartStrings {
     SearchSettingsGroupName: string;
     SearchQueryKeywordsFieldLabel: string;
     SearchQueryKeywordsFieldDescription: string;
-    QueryTemplateFieldLabel: string;
-    SelectedPropertiesFieldLabel: string;
-    SelectedPropertiesFieldDescription: string;
+    
+
     LoadingMessage: string;
-    EnableLocalizationLabel: string;
-    EnableLocalizationOnLabel: string;
-    EnableLocalizationOffLabel: string;
+
     NoResultMessage: string;
     SortableFieldsLabel: string;
     SortableFieldsDescription: string;
@@ -24,15 +21,12 @@ declare interface ISearchResultsWebPartStrings {
     ShowBlankEditInfoMessage: string;
     NoFilterConfiguredLabel: string;
     SearchQueryPlaceHolderText: string;
-    EmptyFieldErrorMessage: string;
+    
     PlaceHolderEditLabel: string;
     PlaceHolderConfigureBtnLabel: string;
     PlaceHolderIconText: string;
     PlaceHolderDescription: string;
-    ResultSourceIdLabel: string;
-    InvalidResultSourceIdMessage: string;
-    EnableQueryRulesLabel: string;
-    IncludeOneDriveResultsLabel: string;
+        
     StylingSettingsGroupName: string;
     CountMessageShort: string;
     CountMessageLong: string;
@@ -57,43 +51,17 @@ declare interface ISearchResultsWebPartStrings {
     HandlebarsHelpersDescription: string;
     PromotedResultsLabel: string;
     PanelCloseButtonAria:string;
-    UseRefinersWebPartLabel: string;
-    UseRefinersFromComponentLabel: string;
+
+    
     UsePaginationFromComponentLabel: string;
-    RefinementFilters: string;
+    
     customTemplateFieldsLabel: string;
     customTemplateFieldsPanelHeader: string;
     customTemplateFieldsConfigureButtonLabel: string;
     customTemplateFieldTitleLabel: string;
     customTemplateFieldPropertyLabel: string;
-    Sort: {
-        SortPropertyPaneFieldLabel
-        SortListDescription: string;
-        SortDirectionAscendingLabel:string;
-        SortDirectionDescendingLabel:string;
-        SortErrorMessage:string;
-        SortPanelSortFieldLabel:string;
-        SortPanelSortFieldAria:string;
-        SortPanelSortFieldPlaceHolder:string;
-        SortPanelSortDirectionLabel:string;
-        SortableFieldsPropertyPaneField: string;
-        SortableFieldsDescription: string;
-        SortableFieldManagedPropertyField: string;
-        SortableFieldDisplayValueField: string;
-        EditSortableFieldsLabel: string;
-        EditSortLabel: string;
-        SortInvalidSortableFieldMessage: string;
-    },
-    Synonyms: {
-        EditSynonymLabel: string;
-        SynonymListDescription: string;
-        SynonymPropertyPanelFieldLabel: string;
-        SynonymListTerm: string;
-        SynonymListSynonyms: string;
-        SynonymIsTwoWays: string;
-        SynonymListSynonymsExemple: string;
-        SynonymListTermExemple: string;
-    },
+
+    
     ResultTypes: {
         ResultTypeslabel: string;
         ResultTypesDescription: string;
@@ -117,8 +85,7 @@ declare interface ISearchResultsWebPartStrings {
     UseDefaultSearchQueryKeywordsFieldLabel: string;
     DefaultSearchQueryKeywordsFieldLabel: string;
     DefaultSearchQueryKeywordsFieldDescription: string;
-    QueryCultureLabel: string;
-    QueryCultureUseUiLanguageLabel: string;
+
     TemplateParameters: {
         TemplateParametersGroupName: string;
         EnableItemPreview: string;

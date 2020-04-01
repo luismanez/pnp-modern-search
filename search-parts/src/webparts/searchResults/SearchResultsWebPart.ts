@@ -91,10 +91,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
     // Dynamic data related fields
     private _dynamicDataService: IDynamicDataService;
 
-    private _refinerSourceData: DynamicProperty<IRefinerSourceData>;
-    private _searchVerticalSourceData: DynamicProperty<ISearchVerticalSourceData>;
-    private _verticalsInformation: ISearchVerticalInformation[];
-
     private _codeRenderers: IRenderer[];
     private _searchContainer: JSX.Element;
     private _synonymTable: ISynonymTable;
@@ -110,11 +106,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
      * The template to display at render time
      */
     private _templateContentToDisplay: string;
-
-    /**
-     * The list of available managed managed properties (managed globally for all property pane fiels if needed)
-     */
-    private _availableManagedProperties: IComboBoxOption[];
 
     private _themeProvider: ThemeProvider;
     private _themeVariant: IReadonlyTheme;
@@ -151,10 +142,8 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
         this._templateContentToDisplay = '';
         this._availableLanguages = [];
         this._templatePropertyPaneOptions = [];
-        this._availableManagedProperties = [];
 
         this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
-        this._onUpdateAvailableProperties = this._onUpdateAvailableProperties.bind(this);
     }
 
     public async render(): Promise<void> {
@@ -425,9 +414,7 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
         this._initComplete = true;
 
         // Bind web component events
-        this.bindPagingEvents();
-
-        this.ensureDataSourceConnection();
+        this.bindPagingEvents();        
 
         return super.onInit();
     }
@@ -614,11 +601,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
                 {
                     groups: [
                         {
-                            groupFields: this._getSearchSettingsFields(),
-                            isCollapsed: false,
-                            groupName: strings.SearchSettingsGroupName
-                        },
-                        {
                             groupName: strings.Paging.PagingOptionsGroupName,
                             groupFields: this.getPagingGroupFields()
                           }
@@ -682,51 +664,7 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
             this.properties.defaultSearchQuery = '';
         }
 
-        // Bind connected data sources
-        if (this.properties.refinerDataSourceReference || this.properties.searchVerticalDataSourceReference) {
-            this.ensureDataSourceConnection();
-        }
-
-        if (propertyPath.localeCompare('useRefiners') === 0) {
-            if (!this.properties.useRefiners) {
-                this.properties.refinerDataSourceReference = undefined;
-                this._refinerSourceData = undefined;
-                this.context.dynamicDataSourceManager.notifyPropertyChanged(SearchComponentType.SearchResultsWebPart);
-            }
-        }
-
-        if (propertyPath.localeCompare('useSearchVerticals') === 0) {
-
-            if (!this.properties.useSearchVerticals) {
-                this.properties.searchVerticalDataSourceReference = undefined;
-                this._searchVerticalSourceData = undefined;
-                this._verticalsInformation = [];
-                this.context.dynamicDataSourceManager.notifyPropertyChanged(SearchComponentType.SearchResultsWebPart);
-            }
-        }
-
-        if (propertyPath.localeCompare('searchVerticalDataSourceReference') === 0 || propertyPath.localeCompare('refinerDataSourceReference')) {
-            this.context.dynamicDataSourceManager.notifyPropertyChanged(SearchComponentType.SearchResultsWebPart);
-        }
-
-        if (this.properties.enableLocalization) {
-
-            let udpatedProperties: string[] = this.properties.selectedProperties.split(',');
-            if (udpatedProperties.indexOf('UniqueID') === -1) {
-                udpatedProperties.push('UniqueID');
-            }
-
-            // Add automatically the UniqueID managed property for subsequent queries
-            this.properties.selectedProperties = udpatedProperties.join(',');
-        }
-
-        // clean out duplicate ones
-        let allProps = this.properties.selectedProperties.split(',');
-        allProps = allProps.filter((item, index) => {
-            return allProps.indexOf(item) === index;
-        });
-        this.properties.selectedProperties = allProps.join(',');
-
+    
 
         if (propertyPath.localeCompare('selectedLayout') === 0) {
             // Refresh setting the right template for the property pane
@@ -804,20 +742,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
     }
 
     /**
-     * Ensures the result source id value is a valid GUID
-     * @param value the result source id
-     */
-    private validateSourceId(value: string): string {
-        if (value.length > 0) {
-            if (!(/^(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}$/).test(value)) {
-                return strings.InvalidResultSourceIdMessage;
-            }
-        }
-
-        return '';
-    }
-
-    /**
      * Init the template according to the property pane current configuration
      * @returns the template content as a string
      */
@@ -868,302 +792,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
             }
         } catch (error) {
             return Text.format(strings.ErrorTemplateResolve, error);
-        }
-    }
-
-    /**
-     * Determines the group fields for the search settings options inside the property pane
-     */
-    private _getSearchSettingsFields(): IPropertyPaneField<any>[] {
-
-        // Get available data source Web Parts on the page
-        const refinerWebParts = this._dynamicDataService.getAvailableDataSourcesByType(SearchComponentType.RefinersWebPart);
-        const searchVerticalsWebParts = this._dynamicDataService.getAvailableDataSourcesByType(SearchComponentType.SearchVerticalsWebPart);
-
-        let useRefiners = this.properties.useRefiners;
-        let useSearchVerticals = this.properties.useSearchVerticals;
-
-        if (this.properties.useRefiners && refinerWebParts.length === 0) {
-            useRefiners = false;
-        }
-
-        if (this.properties.useSearchVerticals && searchVerticalsWebParts.length === 0) {
-            useSearchVerticals = false;
-        }
-
-        // Sets up search settings fields
-        const searchSettingsFields: IPropertyPaneField<any>[] = [
-            PropertyPaneTextField('queryTemplate', {
-                label: strings.QueryTemplateFieldLabel,
-                value: this.properties.queryTemplate,
-                disabled: this.properties.searchVerticalDataSourceReference ? true : false,
-                multiline: true,
-                resizable: true,
-                placeholder: strings.SearchQueryPlaceHolderText,
-                deferredValidationTime: 300
-            }),
-            PropertyPaneTextField('resultSourceId', {
-                label: strings.ResultSourceIdLabel,
-                multiline: false,
-                onGetErrorMessage: this.validateSourceId.bind(this),
-                deferredValidationTime: 300
-            }),
-            this._propertyFieldCollectionData('sortList', {
-                manageBtnLabel: strings.Sort.EditSortLabel,
-                key: 'sortList',
-                enableSorting: true,
-                panelHeader: strings.Sort.EditSortLabel,
-                panelDescription: strings.Sort.SortListDescription,
-                label: strings.Sort.SortPropertyPaneFieldLabel,
-                value: this.properties.sortList,
-                fields: [
-                    {
-                        id: 'sortField',
-                        title: "Field name",
-                        type: this._customCollectionFieldType.custom,
-                        required: true,
-                        onCustomRender: (field, value, onUpdate, item, itemId, onCustomFieldValidation) => {
-
-                            // Need to specify a React key to avoid item duplication when adding a new row
-                            return React.createElement("div", { key: `${field.id}-${itemId}` },
-                                React.createElement(SearchManagedProperties, {
-                                    defaultSelectedKey: item[field.id] ? item[field.id] : '',
-                                    onUpdate: (newValue: any, isSortable: boolean) => {
-
-                                        if (!isSortable) {
-                                            onCustomFieldValidation(field.id, strings.Sort.SortInvalidSortableFieldMessage);
-                                        } else {
-                                            onUpdate(field.id, newValue);
-                                            onCustomFieldValidation(field.id, '');
-                                        }
-                                    },
-                                    searchService: this._searchService,
-                                    validateSortable: true,
-                                    availableProperties: this._availableManagedProperties,
-                                    onUpdateAvailableProperties: this._onUpdateAvailableProperties
-                                } as ISearchManagedPropertiesProps));
-                        }
-                    },
-                    {
-                        id: 'sortDirection',
-                        title: "Direction",
-                        type: this._customCollectionFieldType.dropdown,
-                        required: true,
-                        options: [
-                            {
-                                key: ISortFieldDirection.Ascending,
-                                text: strings.Sort.SortDirectionAscendingLabel
-                            },
-                            {
-                                key: ISortFieldDirection.Descending,
-                                text: strings.Sort.SortDirectionDescendingLabel
-                            }
-                        ]
-                    }
-                ]
-            }),
-            this._propertyFieldCollectionData('sortableFields', {
-                manageBtnLabel: strings.Sort.EditSortableFieldsLabel,
-                key: 'sortableFields',
-                enableSorting: true,
-                panelHeader: strings.Sort.EditSortableFieldsLabel,
-                panelDescription: strings.Sort.SortableFieldsDescription,
-                label: strings.Sort.SortableFieldsPropertyPaneField,
-                value: this.properties.sortableFields,
-                fields: [
-                    {
-                        id: 'sortField',
-                        title: strings.Sort.SortableFieldManagedPropertyField,
-                        type: this._customCollectionFieldType.custom,
-                        required: true,
-                        onCustomRender: (field, value, onUpdate, item, itemId, onCustomFieldValidation) => {
-                            // Need to specify a React key to avoid item duplication when adding a new row
-                            return React.createElement("div", { key: `${field.id}-${itemId}` },
-                                React.createElement(SearchManagedProperties, {
-                                    defaultSelectedKey: item[field.id] ? item[field.id] : '',
-                                    onUpdate: (newValue: any, isSortable: boolean) => {
-
-                                        if (!isSortable) {
-                                            onCustomFieldValidation(field.id, strings.Sort.SortInvalidSortableFieldMessage);
-                                        } else {
-                                            onUpdate(field.id, newValue);
-                                            onCustomFieldValidation(field.id, '');
-                                        }
-                                    },
-                                    searchService: this._searchService,
-                                    validateSortable: true,
-                                    availableProperties: this._availableManagedProperties,
-                                    onUpdateAvailableProperties: this._onUpdateAvailableProperties
-                                } as ISearchManagedPropertiesProps));
-                        }
-                    },
-                    {
-                        id: 'displayValue',
-                        title: strings.Sort.SortableFieldDisplayValueField,
-                        type: this._customCollectionFieldType.string
-                    },
-                    {
-                      id: 'sortDirection',
-                      title: "Direction",
-                      type: this._customCollectionFieldType.dropdown,
-                      required: true,
-                      options: [
-                          {
-                              key: ISortFieldDirection.Ascending,
-                              text: strings.Sort.SortDirectionAscendingLabel
-                          },
-                          {
-                              key: ISortFieldDirection.Descending,
-                              text: strings.Sort.SortDirectionDescendingLabel
-                          }
-                      ]
-                  }
-                ]
-            }),
-            PropertyPaneToggle('useRefiners', {
-                label: strings.UseRefinersWebPartLabel,
-                checked: useRefiners
-            }),
-            PropertyPaneToggle('useSearchVerticals', {
-                label: "Connect to search verticals",
-                checked: useSearchVerticals
-            }),
-            PropertyPaneToggle('enableQueryRules', {
-                label: strings.EnableQueryRulesLabel,
-                checked: this.properties.enableQueryRules,
-            }),
-            PropertyPaneToggle('includeOneDriveResults', {
-                label: strings.IncludeOneDriveResultsLabel,
-                checked: this.properties.includeOneDriveResults,
-            }),
-            new PropertyPaneSearchManagedProperties('selectedProperties', {
-                label: strings.SelectedPropertiesFieldLabel,
-                description: strings.SelectedPropertiesFieldDescription,
-                allowMultiSelect: true,
-                availableProperties: this._availableManagedProperties,
-                defaultSelectedKeys: this.properties.selectedProperties.split(","),
-                onPropertyChange: (propertyPath: string, newValue: any) => {
-                    this.properties[propertyPath] = newValue.join(',');
-                    this.onPropertyPaneFieldChanged(propertyPath);
-
-                    // Refresh the WP with new selected properties
-                    this.render();
-                },
-                onUpdateAvailableProperties: this._onUpdateAvailableProperties,
-                searchService: this._searchService,
-            }),
-            PropertyPaneTextField('refinementFilters', {
-                label: strings.RefinementFilters,
-                 multiline: true,
-                 deferredValidationTime: 300
-            }),
-            PropertyPaneToggle('enableLocalization', {
-                checked: this.properties.enableLocalization,
-                label: strings.EnableLocalizationLabel,
-                onText: strings.EnableLocalizationOnLabel,
-                offText: strings.EnableLocalizationOffLabel
-            }),
-            PropertyPaneDropdown('searchQueryLanguage', {
-                label: strings.QueryCultureLabel,
-                options: [{
-                    key: -1,
-                    text: strings.QueryCultureUseUiLanguageLabel
-                } as IDropdownOption].concat(sortBy(this._availableLanguages, ['text'])),
-                selectedKey: this.properties.searchQueryLanguage ? this.properties.searchQueryLanguage : 0
-            }),
-            this._propertyFieldCollectionData('synonymList', {
-                manageBtnLabel: strings.Synonyms.EditSynonymLabel,
-                key: 'synonymList',
-                enableSorting: false,
-                panelHeader: strings.Synonyms.EditSynonymLabel,
-                panelDescription: strings.Synonyms.SynonymListDescription,
-                label: strings.Synonyms.SynonymPropertyPanelFieldLabel,
-                value: this.properties.synonymList,
-                fields: [
-                    {
-                        id: 'Term',
-                        title: strings.Synonyms.SynonymListTerm,
-                        type: this._customCollectionFieldType.string,
-                        required: true,
-                        placeholder: strings.Synonyms.SynonymListTermExemple
-                    },
-                    {
-                        id: 'Synonyms',
-                        title: strings.Synonyms.SynonymListSynonyms,
-                        type: this._customCollectionFieldType.string,
-                        required: true,
-                        placeholder: strings.Synonyms.SynonymListSynonymsExemple
-                    },
-                    {
-                        id: 'TwoWays',
-                        title: strings.Synonyms.SynonymIsTwoWays,
-                        type: this._customCollectionFieldType.boolean,
-                        required: false
-                    }
-                ]
-            })
-        ];
-
-        // Conditional fields for data sources
-        if (this.properties.useRefiners) {
-
-            searchSettingsFields.splice(5, 0,
-                PropertyPaneDropdown('refinerDataSourceReference', {
-                    options: this._dynamicDataService.getAvailableDataSourcesByType(SearchComponentType.RefinersWebPart),
-                    label: strings.UseRefinersFromComponentLabel
-                }));
-        }
-
-        if (this.properties.useSearchVerticals) {
-            searchSettingsFields.splice(this.properties.useRefiners ? 7 : 6, 0,
-                PropertyPaneDropdown('searchVerticalDataSourceReference', {
-                    options: this._dynamicDataService.getAvailableDataSourcesByType(SearchComponentType.SearchVerticalsWebPart),
-                    label: "Use verticals from this component"
-                }));
-        }
-
-        return searchSettingsFields;
-    }
-
-    /**
-     * Make sure the dynamic property is correctly connected to the source if a search refiner component has been selected in options
-     */
-    private ensureDataSourceConnection() {
-
-        // Refiner Web Part data source
-        if (this.properties.refinerDataSourceReference) {
-
-            if (!this._refinerSourceData) {
-                this._refinerSourceData = new DynamicProperty<IRefinerSourceData>(this.context.dynamicDataProvider);
-            }
-
-            // Register the data source manually since we don't want user select properties manually
-            this._refinerSourceData.setReference(this.properties.refinerDataSourceReference);
-            this._refinerSourceData.register(this.render);
-
-        } else {
-
-            if (this._refinerSourceData) {
-                this._refinerSourceData.unregister(this.render);
-            }
-        }
-
-        // Search verticals Web Part data source
-        if (this.properties.searchVerticalDataSourceReference) {
-
-            if (!this._searchVerticalSourceData) {
-                this._searchVerticalSourceData = new DynamicProperty<ISearchVerticalSourceData>(this.context.dynamicDataProvider);
-            }
-
-            // Register the data source manually since we don't want user select properties manually
-            this._searchVerticalSourceData.setReference(this.properties.searchVerticalDataSourceReference);
-            this._searchVerticalSourceData.register(this.render);
-
-        } else {
-
-            if (this._searchVerticalSourceData) {
-                this._searchVerticalSourceData.unregister(this.render);
-            }
         }
     }
 
@@ -1726,20 +1354,6 @@ export default class SearchResultsWebPart extends BaseClientSideWebPart<ISearchR
         }
 
         return updatedDefaultSelectedFilters;
-    }
-
-    /**
-     * Handler when the list of available managed properties is fetched by a property pane control¸or a field in a collection data control
-     * @param properties the fetched properties
-     */
-    private _onUpdateAvailableProperties(properties: IComboBoxOption[]) {
-
-        // Save the value in the root Web Part class to avoid fetching it again if the property list is requested again by any other property pane control
-        this._availableManagedProperties = cloneDeep(properties);
-
-        // Refresh all fields so other property controls can use the new list
-        this.context.propertyPane.refresh();
-        this.render();
     }
 
     /**

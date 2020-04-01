@@ -1,19 +1,26 @@
 import { SPHttpClient, SPHttpClientResponse } from "@microsoft/sp-http";
 import { Text, Log } from "@microsoft/sp-core-library";
 import { ITokenService } from ".";
-import { UrlQueryParameterCollection } from '@microsoft/sp-core-library';
+import { UrlQueryParameterCollection, ServiceKey, ServiceScope } from '@microsoft/sp-core-library';
 import { PageContext } from "@microsoft/sp-page-context";
 import { isEmpty } from '@microsoft/sp-lodash-subset';
 
 const LOG_SOURCE: string = '[SearchResultsWebPart_{0}]';
+const TokenService_ServiceKey = 'PnPModernSearch:TokenService';
 
 export class TokenService implements ITokenService {
+
+    public static ServiceKey: ServiceKey<ITokenService> = ServiceKey.create(TokenService_ServiceKey, TokenService);
+
     private _pageContext: PageContext;
     private _spHttpClient: SPHttpClient;
 
-    constructor(pageContext: PageContext, spHttpClient: SPHttpClient) {
-        this._pageContext = pageContext;
-        this._spHttpClient = spHttpClient;
+    constructor(serviceScope: ServiceScope) {
+
+        serviceScope.whenFinished(() => {
+            this._pageContext = serviceScope.consume<PageContext>(PageContext.serviceKey);
+            this._spHttpClient = serviceScope.consume<SPHttpClient>(SPHttpClient.serviceKey);
+        });
     }
 
     public async replaceQueryVariables(queryTemplate: string): Promise<string> {

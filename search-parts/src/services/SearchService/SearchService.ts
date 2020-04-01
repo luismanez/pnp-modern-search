@@ -11,7 +11,6 @@ import IRefinerConfiguration from '../../models/IRefinerConfiguration';
 import { ISearchServiceConfiguration } from '../../models/ISearchServiceConfiguration';
 import { ITokenService, TokenService } from '../TokenService';
 import { PageContext } from '@microsoft/sp-page-context';
-import { SPHttpClient } from '@microsoft/sp-http';
 import ISynonymTable from '../../models/ISynonym';
 import { JSONParser } from '@pnp/odata';
 import { UrlHelper } from '../../helpers/UrlHelper';
@@ -19,8 +18,14 @@ import { ISearchVertical } from '../../models/ISearchVertical';
 import IManagedPropertyInfo from '../../models/IManagedPropertyInfo';
 import { Loader } from '../TemplateService/LoadHelper';
 import { BaseQueryModifier } from '../ExtensibilityService/BaseQueryModifier';
+import { ServiceKey, ServiceScope } from '@microsoft/sp-core-library';
+
+const SearchService_ServiceKey = 'PnPModernSearch:SharePointSearchService';
 
 class SearchService implements ISearchService {
+
+    public static ServiceKey: ServiceKey<ISearchService> = ServiceKey.create(SearchService_ServiceKey, SearchService);
+
     private _initialSearchResult: SearchResults = null;
     private _resultsCount: number;
     private _pageContext: PageContext;
@@ -79,22 +84,26 @@ class SearchService implements ISearchService {
 
     private _localPnPSetup: SPRest;
 
-    public constructor(pageContext: PageContext, spHttpClient: SPHttpClient) {
-        this._pageContext = pageContext;
-        this._tokenService = new TokenService(this._pageContext, spHttpClient);
+    public constructor(serviceScope: ServiceScope) {
 
-        // Setup the PnP JS instance
-        const consoleListener = new ConsoleListener();
-        Logger.subscribe(consoleListener);
+        serviceScope.whenFinished(() => {
 
-        // To limit the payload size, we set odata=nometadata
-        // We just need to get list items here
-        // We use a local configuration to avoid conflicts with other Web Parts
-        this._localPnPSetup = sp.configure({
-            headers: {
-                Accept: 'application/json; odata=nometadata',
-            },
-        }, this._pageContext.web.absoluteUrl);
+            this._pageContext = serviceScope.consume<PageContext>(PageContext.serviceKey);
+            this._tokenService = serviceScope.consume<ITokenService>(TokenService.ServiceKey);
+    
+            // Setup the PnP JS instance
+            const consoleListener = new ConsoleListener();
+            Logger.subscribe(consoleListener);
+    
+            // To limit the payload size, we set odata=nometadata
+            // We just need to get list items here
+            // We use a local configuration to avoid conflicts with other Web Parts
+            this._localPnPSetup = sp.configure({
+                headers: {
+                    Accept: 'application/json; odata=nometadata',
+                },
+            }, this._pageContext.web.absoluteUrl);
+        });
     }
 
     /**

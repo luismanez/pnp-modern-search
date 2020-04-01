@@ -1,14 +1,26 @@
 import IDynamicDataService from "./IDynamicDataService";
-import { DynamicProperty, DynamicDataProvider } from "@microsoft/sp-component-base";
+import { DynamicDataProvider } from "@microsoft/sp-component-base";
 import { IDynamicDataSource } from "@microsoft/sp-dynamic-data";
 import IDataSourceProperty from "../../models/IDataSourceProperty";
+import { ServiceScope, ServiceKey } from "@microsoft/sp-core-library";
+
+const DynamicDataService_ServiceKey = 'PnPModernSearch:DynamicDataService';
 
 export class DynamicDataService implements IDynamicDataService {
 
+    public static ServiceKey: ServiceKey<IDynamicDataService> = ServiceKey.create(DynamicDataService_ServiceKey, DynamicDataService);
+
     private _dynamicDataProvider: DynamicDataProvider;
 
-    constructor(dynamicDataProvider: DynamicDataProvider) {
-        this._dynamicDataProvider = dynamicDataProvider;
+    get dynamicDataProvider(): DynamicDataProvider {
+        return this._dynamicDataProvider;
+    }
+
+    set dynamicDataProvider(value: DynamicDataProvider) {
+        this._dynamicDataProvider = value;
+    }
+
+    constructor(serviceScope: ServiceScope) {
     }
     
     /**
